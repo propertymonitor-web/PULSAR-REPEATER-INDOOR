@@ -14,6 +14,10 @@ static int fails = 0, checks = 0;
 
 static bool lit(const RGB& p) { return p.r || p.g || p.b; }
 static std::vector<int> litBar(const Lights& L, int first) { std::vector<int> v; for (int i = 0; i < Lights::BAR_N; i++) if (lit(L.buf()[first + i])) v.push_back(i); return v; }
+// lit LEDs of a stick as positions counted from the TOP of the jar (0 = top), whichever end its DIN is at
+static std::vector<int> litPhys(const Lights& L, int first, bool dinAtBottom) {
+  std::vector<int> v; for (int p = 0; p < Lights::BAR_N; p++) { int k = dinAtBottom ? Lights::BAR_N - 1 - p : p; if (lit(L.buf()[first + k])) v.push_back(p); } return v;
+}
 static uint32_t rs = 12345; static uint32_t rnd() { rs = rs * 1664525u + 1013904223u; return rs >> 8; }
 
 // run frames from t0 for ms milliseconds; call f(now) after every picture
@@ -25,8 +29,8 @@ int main() {
   // ---- a quiet jar: only the heartbeat jewel is lit, within the brightness cap
   { Lights L; uint32_t maxJ = 0, minJ = 255; bool barsDark = true; bool capOk = true;
     run(L, 1000, 6000, [&](uint32_t) {
-      for (int i = 0; i < Lights::JEWEL_N; i++) { RGB p = L.buf()[i]; uint32_t m = p.r > p.g ? (p.r > p.b ? p.r : p.b) : (p.g > p.b ? p.g : p.b); if (m > maxJ) maxJ = m; if (m < minJ) minJ = m; }
-      for (int i = Lights::RX_FIRST; i < Lights::TOTAL; i++) if (lit(L.buf()[i])) barsDark = false;
+      for (int i = 0; i < Lights::JEWEL_N; i++) { RGB p = L.buf()[Lights::JEWEL_FIRST + i]; uint32_t m = p.r > p.g ? (p.r > p.b ? p.r : p.b) : (p.g > p.b ? p.g : p.b); if (m > maxJ) maxJ = m; if (m < minJ) minJ = m; }
+      for (int i = 0; i < Lights::TOTAL; i++) if ((i < Lights::JEWEL_FIRST || i >= Lights::JEWEL_FIRST + Lights::JEWEL_N) && lit(L.buf()[i])) barsDark = false;
       for (int i = 0; i < Lights::TOTAL; i++) { RGB p = L.buf()[i]; if (p.r > LODESTAR_LIGHTS_BRIGHT || p.g > LODESTAR_LIGHTS_BRIGHT || p.b > LODESTAR_LIGHTS_BRIGHT) capOk = false; }
     });
     CHECK(barsDark); CHECK(capOk); CHECK(maxJ > 3 * (minJ + 1)); CHECK(maxJ >= 30);   // it really beats, and the peak is near the cap
@@ -49,7 +53,7 @@ int main() {
   // ---- send: one spot runs bottom (pixel 7) to top (pixel 0); the receive stick stays dark
   { Lights L; L.update(0); L.onTx(0); std::vector<int> heads; bool rxDark = true; size_t maxLit = 0;
     run(L, 40, 1500, [&](uint32_t) {
-      std::vector<int> v = litBar(L, Lights::TX_FIRST); if (v.size() > maxLit) maxLit = v.size();
+      std::vector<int> v = litPhys(L, Lights::TX_FIRST, LODESTAR_LIGHTS_TX_FLIPPED); if (v.size() > maxLit) maxLit = v.size();
       if (!v.empty()) { int h = v.front(); if (heads.empty() || heads.back() != h) heads.push_back(h); }   // the head is the upper one of the pair
       if (!litBar(L, Lights::RX_FIRST).empty()) rxDark = false;
     });
@@ -57,11 +61,13 @@ int main() {
     CHECK(heads.size() == 8); for (size_t i = 0; i < heads.size(); i++) CHECK(heads[i] == 7 - (int)i);        // 7,6,5,...,0
   }
 
+  // ---- the chain order is RX stick (8), jewel (7), TX stick (8)
+  CHECK(Lights::RX_FIRST == 0 && Lights::JEWEL_FIRST == 8 && Lights::TX_FIRST == 15 && Lights::TOTAL == 23);
   // ---- colors: receive is blue-ish, send is amber-ish, heartbeat is red-ish
   { Lights L; L.update(0); L.onRx(0); L.onTx(0); L.update(40); L.update(80);
-    RGB r = L.buf()[Lights::RX_FIRST], t = L.buf()[Lights::TX_FIRST + 7];
+    RGB r = L.buf()[Lights::RX_FIRST], t = L.buf()[Lights::TX_FIRST + (LODESTAR_LIGHTS_TX_FLIPPED ? 0 : 7)];   // the head of a new spot: top of RX, bottom of TX
     CHECK(r.b > r.r && r.b > 0); CHECK(t.r > t.b && t.r > 0);
-    RGB h = L.buf()[LODESTAR_LIGHTS_JEWEL_CENTER]; CHECK(h.r >= h.g && h.r >= h.b);
+    RGB h = L.buf()[Lights::JEWEL_FIRST + LODESTAR_LIGHTS_JEWEL_CENTER]; CHECK(h.r >= h.g && h.r >= h.b);
   }
 
   // ---- a burst of traffic: never more spots than the limit, never a solid bar; every frame within the cap

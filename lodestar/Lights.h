@@ -4,7 +4,9 @@
 //   * 8-LED stick "RX"   = a spot of light runs from the TOP of the jar to the BOTTOM each time a packet is received
 //   * 8-LED stick "TX"   = a spot of light runs from the BOTTOM of the jar to the TOP each time a packet is sent
 //
-// All 23 LEDs are one chain on ONE data pin:  jewel (7)  ->  RX stick (8)  ->  TX stick (8).
+// All 23 LEDs are one chain on ONE data pin:  RX stick (8)  ->  jewel (7)  ->  TX stick (8).
+// Mounting: the RX stick hangs with DIN at the TOP; the jewel sits at the bottom; the TX stick has its DIN at the BOTTOM
+// (and its DOUT at the top). Each spot then travels the same way the data does.
 // This file has no hardware calls, so every rule below is tested on a PC (lodestar/test/test_lights.cpp).
 // The part that talks to the real LEDs is a few lines of glue added by tools/apply_lights.py.
 // NOT TESTED ON REAL HARDWARE. See PULSAR-JAR-LIGHTS.txt.
@@ -30,8 +32,8 @@
 #ifndef LODESTAR_LIGHTS_JEWEL_CENTER    // which of the 7 jewel pixels is the middle one (0 = first in the chain)
 #define LODESTAR_LIGHTS_JEWEL_CENTER 0
 #endif
-#ifndef LODESTAR_LIGHTS_TX_FLIPPED      // 1 if the TX stick is mounted with its DIN at the BOTTOM of the jar
-#define LODESTAR_LIGHTS_TX_FLIPPED 0
+#ifndef LODESTAR_LIGHTS_TX_FLIPPED      // 1 (default) = the TX stick is mounted with its DIN at the BOTTOM of the jar; 0 = DIN at the top
+#define LODESTAR_LIGHTS_TX_FLIPPED 1
 #endif
 #ifndef LODESTAR_LIGHTS_HEART_RGB       // heartbeat color
 #define LODESTAR_LIGHTS_HEART_RGB 255, 40, 70
@@ -48,7 +50,7 @@ namespace lodestar {
 class Lights {
  public:
   static const int JEWEL_N = 7, BAR_N = 8;
-  static const int JEWEL_FIRST = 0, RX_FIRST = 7, TX_FIRST = 15, TOTAL = 23;
+  static const int RX_FIRST = 0, JEWEL_FIRST = 8, TX_FIRST = 15, TOTAL = 23;
   static const uint32_t FRAME_MS = 40;            // 25 pictures a second
   static const uint32_t STEP_MS = 70;             // the spot moves one LED every 70 ms (a sweep takes about 0.6 s)
   static const uint32_t SPACING_MS = 3 * STEP_MS; // spots on one stick start at least this far apart

@@ -14,10 +14,10 @@ not something we have measured on this build.
   Round 7-LED jewel, bottom of the jar, pointing up:
       HEARTBEAT. A soft red "lub-dub" every 2 seconds, with a faint glow between beats. If it stops, the
       repeater has stopped (or the lights are off).
-  Stick 1 (8 LEDs) "RX", DIN at the TOP:
+  Stick 1 (8 LEDs) "RX", hanging with DIN at the TOP:
       A blue spot runs from the TOP to the BOTTOM each time the repeater HEARS a packet. One bright LED
       with a dimmer one behind it.
-  Stick 2 (8 LEDs) "TX", DIN at the TOP:
+  Stick 2 (8 LEDs) "TX", DIN at the BOTTOM (DOUT at the top):
       An amber spot runs from the BOTTOM to the TOP each time the repeater SENDS a packet.
 
   Good to know:
@@ -44,21 +44,22 @@ not something we have measured on this build.
 ------------------------------------------------------------------------------------------------
    The LEDs are one chain on ONE data pin, in this order:
 
-      board DATA pin -> [resistor] -> JEWEL DIN
-      JEWEL DOUT -> RX STICK DIN (top)
-      RX STICK DOUT (bottom) -> TX STICK DIN
-      all 5V pins together to the 5V supply   (+ capacitor across 5V and GND at the jewel)
+      board DATA pin (D1 on the XIAO) -> [resistor] -> RX STICK DIN (top)
+      RX STICK DOUT (bottom)          -> JEWEL DIN (bottom of the jar)
+      JEWEL DOUT                      -> TX STICK DIN (bottom)
+      (TX STICK DOUT, at the top, is not connected)
+      all 5V pins together to the 5V supply   (+ capacitor across 5V and GND near the first LED)
       all GND pins together to the board GND
 
-   Orientation (matches the code's default): both sticks are mounted with DIN at the TOP of the jar.
-   That means one wire runs from the BOTTOM of the RX stick (its DOUT) up to the TOP of the TX stick (its
-   DIN). Put that wire inside the jar, against the glass.
+   Picture it from the top of the jar:
+        DATA --> RX stick (hangs down) --> jewel (lying at the bottom, pointing up) --> TX stick (goes up)
+   The RX spot runs the same way the data does (DIN to DOUT, top to bottom). The TX spot also runs the
+   same way its data does (DIN to DOUT, bottom to top). The wires between the parts are short.
 
-   Shorter wiring option: mount the TX stick the other way up (DIN at the BOTTOM). Then the RX stick's DOUT
-   (bottom) connects straight to the TX stick's DIN (bottom). Build with  -D LODESTAR_LIGHTS_TX_FLIPPED=1
-   and the animation still runs bottom to top.
+   If you ever mount the TX stick the other way up (DIN at the top), build with
+   -D LODESTAR_LIGHTS_TX_FLIPPED=0 and the spot will still run bottom to top.
 
-   The jewel's centre LED: the code assumes the first LED in the chain is the centre of the jewel. If the
+   The jewel's centre LED: the code assumes the first LED the data reaches in the jewel is its centre. If the
    middle LED is not the one that beats strongest, build with -D LODESTAR_LIGHTS_JEWEL_CENTER=N (N = 0 to 6).
 
    Colours come out wrong (red where blue should be)? Build with -D LODESTAR_LIGHTS_ORDER=NEO_RGB (or
