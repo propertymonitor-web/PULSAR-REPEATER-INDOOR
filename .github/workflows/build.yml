@@ -58,6 +58,11 @@ on:
           - Heltec_t114_repeater
           - LilyGo_T-Echo_repeater
           - Heltec_mesh_solar_repeater
+      lights_pin:
+        description: "Jar lights: the LED data pin (a number, or a pin name such as WB_IO1). Leave empty for a build WITHOUT lights"
+        default: ""
+        required: false
+        type: string
       publish:
         description: "Publish the result as a GitHub Release anyone can download"
         default: false
@@ -84,6 +89,11 @@ jobs:
           g++ -std=c++17 -Wall -Wextra -Ilodestar lodestar/test/test_lodestar.cpp -o lodestar_test
           ./lodestar_test
 
+      - name: Unit-test the jar lights (with memory and undefined-behaviour checkers on)
+        run: |
+          g++ -std=c++17 -Wall -Wextra -g -fsanitize=address,undefined -fno-sanitize-recover=all -Ilodestar lodestar/test/test_lights.cpp -o lights_test
+          ./lights_test
+
   patch-check:
     name: Patch still applies to current MeshCore
     runs-on: ubuntu-latest
@@ -99,6 +109,36 @@ jobs:
 
       - name: Apply Lodestar
         run: python tools/apply_lodestar.py --meshcore MeshCore && python tools/persist_ble_pin.py --meshcore MeshCore
+
+      - name: Apply the jar lights (optional add-on)
+        run: python tools/apply_lights.py --meshcore MeshCore --env Heltec_v3_repeater --pin 5
+
+  lights-compile:
+    name: Jar lights compile (${{ matrix.env }})
+    if: github.event_name != 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { env: Xiao_S3_WIO_repeater, pin: D1 }         # the test board: XIAO ESP32S3 + Wio-SX1262 (D1 = GPIO2, free on this kit)
+          - { env: Heltec_v3_repeater, pin: "5" }           # other ESP32 and nRF52 boards: the pin is only for the compile check
+          - { env: RAK_4631_repeater, pin: "5" }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install platformio
+      - name: Get MeshCore
+        run: git clone --depth 1 https://github.com/meshcore-dev/MeshCore.git
+      - name: Apply Lodestar and the jar lights
+        run: |
+          python tools/apply_lodestar.py --meshcore MeshCore && python tools/persist_ble_pin.py --meshcore MeshCore
+          python tools/apply_lights.py --meshcore MeshCore --env ${{ matrix.env }} --pin ${{ matrix.pin }}
+      - name: Build
+        working-directory: MeshCore
+        run: pio run -e ${{ matrix.env }}
 
   build:
     name: Build firmware
@@ -143,6 +183,13 @@ jobs:
 
       - name: Apply Lodestar
         run: python tools/apply_lodestar.py --meshcore MeshCore && python tools/persist_ble_pin.py --meshcore MeshCore
+
+      - name: Apply the jar lights (only when a pin was given)
+        if: ${{ inputs.lights_pin != '' }}
+        env:
+          LIGHTS_PIN: ${{ inputs.lights_pin }}
+          FW_ENV: ${{ inputs.env }}
+        run: python tools/apply_lights.py --meshcore MeshCore --env "$FW_ENV" --pin "$LIGHTS_PIN"
 
       - name: Generate splash
         env:

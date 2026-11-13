@@ -1,0 +1,135 @@
+PULSAR-REPEATER-INDOOR: JAR LIGHTS
+A LODESTAR PULSAR repeater in a frosted glass jar, with lights that show what it is doing.
+
+Imagined and engineered by: Aries Thorne & Todd Steinhauer for Wolf Reactive Systems (WRS)
+Moral Support: Athena the K9
+
+STATUS: BETA. The animation logic is tested on a PC (20,000+ checks). It has NOT been run on a real
+radio board or real LEDs yet. Everything in the wiring section is standard practice for this kind of LED,
+not something we have measured on this build.
+
+------------------------------------------------------------------------------------------------
+1. WHAT THE LIGHTS DO
+------------------------------------------------------------------------------------------------
+  Round 7-LED jewel, bottom of the jar, pointing up:
+      HEARTBEAT. A soft red "lub-dub" every 2 seconds, with a faint glow between beats. If it stops, the
+      repeater has stopped (or the lights are off).
+  Stick 1 (8 LEDs) "RX", DIN at the TOP:
+      A blue spot runs from the TOP to the BOTTOM each time the repeater HEARS a packet. One bright LED
+      with a dimmer one behind it.
+  Stick 2 (8 LEDs) "TX", DIN at the TOP:
+      An amber spot runs from the BOTTOM to the TOP each time the repeater SENDS a packet.
+
+  Good to know:
+   * "Sends" means any packet the radio transmits: packets it forwards for others AND its own adverts and
+     replies. We do not separate those.
+   * "Hears" means any valid packet the radio receives, including copies it will not forward.
+   * Busy traffic shows as a short stream of spots (up to 3 at a time on a stick), never a solid bar.
+   * A sweep takes about 0.6 seconds. Very fast traffic is shown, not counted.
+   * See the preview animation: jar-preview.gif.
+
+------------------------------------------------------------------------------------------------
+2. PARTS (all 5 volt, 3-wire "NeoPixel" type: WS2812B or compatible)
+------------------------------------------------------------------------------------------------
+   * 1 x 7-LED round jewel
+   * 2 x 8-LED straight sticks
+   * 1 x resistor, 300 to 470 ohm (330 is common), for the data line
+   * 1 x capacitor, 100 to 470 microfarad, 6.3 volt or more, across the LED power
+   * Recommended: a level shifter for the data line (for example a 74AHCT125 or 74HCT245), see 4
+   * Thin wire, heat-shrink, hot glue or clear mounting tape
+   Use RGB parts. LEDs that have a separate white chip (RGBW) need a small code change. Ask first.
+
+------------------------------------------------------------------------------------------------
+3. WIRING: ONE DATA WIRE FOR ALL 23 LEDs
+------------------------------------------------------------------------------------------------
+   The LEDs are one chain on ONE data pin, in this order:
+
+      board DATA pin -> [resistor] -> JEWEL DIN
+      JEWEL DOUT -> RX STICK DIN (top)
+      RX STICK DOUT (bottom) -> TX STICK DIN
+      all 5V pins together to the 5V supply   (+ capacitor across 5V and GND at the jewel)
+      all GND pins together to the board GND
+
+   Orientation (matches the code's default): both sticks are mounted with DIN at the TOP of the jar.
+   That means one wire runs from the BOTTOM of the RX stick (its DOUT) up to the TOP of the TX stick (its
+   DIN). Put that wire inside the jar, against the glass.
+
+   Shorter wiring option: mount the TX stick the other way up (DIN at the BOTTOM). Then the RX stick's DOUT
+   (bottom) connects straight to the TX stick's DIN (bottom). Build with  -D LODESTAR_LIGHTS_TX_FLIPPED=1
+   and the animation still runs bottom to top.
+
+   The jewel's centre LED: the code assumes the first LED in the chain is the centre of the jewel. If the
+   middle LED is not the one that beats strongest, build with -D LODESTAR_LIGHTS_JEWEL_CENTER=N (N = 0 to 6).
+
+   Colours come out wrong (red where blue should be)? Build with -D LODESTAR_LIGHTS_ORDER=NEO_RGB (or
+   NEO_BRG). To change colours, see the flags in lodestar/Lights.h.
+
+------------------------------------------------------------------------------------------------
+4. POWER AND SIGNAL: THE THINGS THAT GO WRONG
+------------------------------------------------------------------------------------------------
+   * Power the LEDs from the same 5 volt USB supply that powers the board, through the board's 5V/VBUS pin
+     or a split cable. NEVER from the board's 3.3 volt pin. Join the grounds.
+   * Current (estimated from typical datasheet numbers: about 20 mA per colour at full, about 1 mA per LED
+     when dark). The PC simulation's busiest moment in a 60 second storm of traffic is about 67 mA at the
+     default brightness, and about 160 mA at the highest brightness the `lights bright` command allows.
+     A normal USB charger is far above that. These are estimates. Measure with a USB meter.
+   * Data signal level: the board talks at 3.3 volts, and a 5 volt LED chip officially wants about 3.5.
+     Many builds work anyway, some flicker or show random colours. Two fixes: (1) a level shifter (best),
+     or (2) feed the LEDs from 5 V through one 1N5819 Schottky diode (about 4.5 V at the LEDs) so 3.3 V is
+     enough. Keep the data wire short.
+   * The resistor goes in the data wire close to the first LED. The capacitor goes across 5V and GND near
+     the first LED. Connect GND before 5V when wiring a live board.
+   * Which pin? It must be a free output pin on YOUR board, not one the radio, screen, GPS or battery
+     monitor uses. Do not guess.
+       XIAO ESP32S3 + Wio-SX1262 kit (the test board): use D1 (GPIO2). The kit's radio uses GPIO 7, 8, 9,
+       38, 39, 40, 41 and 42, the button is GPIO21, the board LED GPIO48, and the I2C pins are D4 and D5.
+       D1 is not used by any of them. Avoid D2 (GPIO3), which is a boot-strapping pin. Power the LEDs from
+       the board's 5V pad (USB's 5 volts when plugged in; check Seeed's pinout), never the 3V3 pad.
+       Other boards: tell us the board and we will pick and check a pin.
+
+------------------------------------------------------------------------------------------------
+5. RADIO AND JAR NOTES
+------------------------------------------------------------------------------------------------
+   * LED chains switch fast and can add radio noise. Keep the LED wires well away from the antenna, and
+     check: with `lights off`, then `lights on`, run the repeater's stats-radio command and compare the
+     noise floor. If it gets noticeably worse with the lights on, move the wires or lower the brightness.
+   * Glass does not block radio. Metal does: do not use a metal lid or foil near the antenna. A plastic or
+     wooden lid, or an antenna outside the jar on a short lead, is safer. Test range before and after.
+   * Frosted glass spreads the light nicely: aim the jewel upward from the bottom.
+   * Leave the jar open enough to let a little warmth out, and keep it dry: it is an INDOOR build.
+   * Keep a USB path to the board for updates.
+
+------------------------------------------------------------------------------------------------
+6. BUILDING IT
+------------------------------------------------------------------------------------------------
+   On GitHub: Actions -> "Build LODESTAR PULSAR firmware" -> Run workflow. Pick the board, and put the LED
+   data pin in "Jar lights: the LED data pin". Leave it empty for a build with no lights.
+
+   By hand (needs PlatformIO):
+      git clone --depth 1 https://github.com/meshcore-dev/MeshCore.git
+      python tools/apply_lodestar.py --meshcore MeshCore
+      python tools/persist_ble_pin.py --meshcore MeshCore
+      python tools/apply_lights.py --meshcore MeshCore --env <your repeater env> --pin <data pin>
+      cd MeshCore && pio run -e <your repeater env>
+
+   Commands on the repeater's serial console or remote admin (they are not saved; at reboot it goes back
+   to the build's settings):
+      lights                 shows on or off and the brightness
+      lights on | lights off
+      lights bright 0-100    percent of the highest allowed brightness
+
+   Build settings (add to the environment as  -D NAME=value):
+      LODESTAR_LIGHTS_BRIGHT      normal brightness, 0-255, default 40
+      LODESTAR_LIGHTS_BRIGHT_MAX  highest the command can set, default 120 (protects the power supply)
+      LODESTAR_LIGHTS_GLOW        faint glow between beats, 0-20, default 2 (0 = dark)
+      LODESTAR_LIGHTS_TX_FLIPPED, LODESTAR_LIGHTS_JEWEL_CENTER, LODESTAR_LIGHTS_ORDER
+      LODESTAR_LIGHTS_HEART_RGB, LODESTAR_LIGHTS_RX_RGB, LODESTAR_LIGHTS_TX_RGB   e.g. "255, 40, 70"
+
+------------------------------------------------------------------------------------------------
+7. WHAT IS NOT PROVEN
+------------------------------------------------------------------------------------------------
+   * No real board or LED has run this. First power-up should be on the bench, with the jar open.
+   * The LED update briefly pauses the processor (a fraction of a millisecond on some boards). We expect
+     that to be harmless for the radio but have not measured it. Watch for missed packets in testing.
+   * Whether a 3.3 volt data line is clean enough for your particular LEDs, and the noise effect on your
+     radio, depend on your parts and wiring.

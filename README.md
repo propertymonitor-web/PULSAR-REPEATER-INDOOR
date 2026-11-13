@@ -1,3 +1,27 @@
+# PULSAR-REPEATER-INDOOR
+
+### LODESTAR PULSAR repeater, indoor edition: with optional jar lights
+
+This is a **fork of [LODESTAR PULSAR](https://github.com/propertymonitor-web/lodestar.alpha2)** (taken at commit `fae43a6`). Everything in PULSAR is here unchanged. What this fork adds is an **optional add-on for a repeater that lives indoors, for example inside a frosted glass jar**:
+
+- a 7-LED round jewel that shows a **heartbeat**,
+- an 8-LED stick that shows each packet **received** (top to bottom),
+- an 8-LED stick that shows each packet **sent** (bottom to top).
+
+![Animated preview of the jar](docs/jar-preview.gif)
+
+*The preview above is drawn from the real animation code, brightened for the screen. It is not a photo.*
+
+**Start here: [PULSAR-JAR-LIGHTS.txt](PULSAR-JAR-LIGHTS.txt)** (what it does, parts, wiring, power, building, settings, what is not proven).
+
+**Status: beta, first test board = Seeed XIAO ESP32S3 + Wio-SX1262 (LED data pin D1).** The animation is tested on a PC. It has **not** been run on real hardware yet. With no LED pin given at build time the firmware is plain PULSAR.
+
+How it is built: `tools/apply_lights.py` runs after `tools/apply_lodestar.py` and adds `lodestar/Lights.h` (the animation, no hardware calls) plus a few lines of glue. In GitHub Actions, "Run workflow" has a field "Jar lights: the LED data pin". Leave it empty for a build without lights.
+
+**Not changed from the original PULSAR, on purpose:** the dashboards in `dashboard/` and `dashboards/`, and the firmware release naming. The dashboards still look at the original PULSAR releases for firmware updates. Do not use them to update this edition.
+
+---
+
 # LODESTAR PULSAR
 
 ### Mobile-repeater firmware for MeshCore, by Wolf Reactive Systems (WRS)
