@@ -12,6 +12,8 @@ This is a **fork of [LODESTAR PULSAR](https://github.com/propertymonitor-web/lod
 
 *The preview above is drawn from the real animation code, brightened for the screen. It is not a photo.*
 
+**[Watch the 13-second preview video](docs/pulsar-indoor-jar-preview.mp4)** (heartbeat, packets heard running down, packets sent running up, and a burst of traffic). Same rules: drawn from the real animation code, an illustration of the idea, not a photo and not yet run on hardware.
+
 **Start here: [PULSAR-JAR-LIGHTS.txt](PULSAR-JAR-LIGHTS.txt)** (what it does, parts, wiring, power, building, settings, what is not proven).
 
 **Status: beta, first test board = Seeed XIAO ESP32S3 + Wio-SX1262 (LED data pin D1).** The animation is tested on a PC. It has **not** been run on real hardware yet. With no LED pin given at build time the firmware is plain PULSAR.
