@@ -79,10 +79,19 @@ def add_env_flags(meshcore, env, pin):
         die("This environment already has the lights in it. Use a fresh clone.")
     for key, add in (("build_flags", f"  -D LODESTAR_LIGHTS_PIN={pin}"), ("lib_deps", f"  {NEOPIXEL_LIB}")):
         idx = [i for i in range(start, end) if re.match(rf"^{key}\s*=\s*$", lines[i])]
-        if len(idx) != 1:
+        if len(idx) == 1:
+            lines.insert(idx[0] + 1, add)
+            end += 1
+        elif len(idx) == 0 and key == "lib_deps":
+            # this environment inherits its libraries: say so explicitly, then add ours (needs a single parent in 'extends =')
+            ext = [i for i in range(start, end) if re.match(r"^extends\s*=\s*[A-Za-z0-9_:.-]+\s*$", lines[i])]
+            if len(ext) != 1:
+                die(f"[env:{env}] has no 'lib_deps =' block and no single parent to inherit from; edit {path} by hand.")
+            parent = lines[ext[0]].split("=", 1)[1].strip()
+            lines[ext[0] + 1:ext[0] + 1] = ["lib_deps =", f"  ${{{parent}.lib_deps}}", add]
+            end += 3
+        else:
             die(f"[env:{env}] has no plain '{key} =' block to add to (found {len(idx)}); edit {path} by hand.")
-        lines.insert(idx[0] + 1, add)
-        end += 1
     open(path, "w", encoding="utf-8").write("\n".join(lines))
     return path
 
